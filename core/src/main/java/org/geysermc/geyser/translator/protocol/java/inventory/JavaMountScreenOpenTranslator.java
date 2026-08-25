@@ -56,8 +56,19 @@ import java.util.List;
 
 @Translator(packet = ClientboundMountScreenOpenPacket.class)
 public class JavaMountScreenOpenTranslator extends PacketTranslator<ClientboundMountScreenOpenPacket> {
-    private static final String[] ACCEPTED_HORSE_ARMORS = new String[] {"minecraft:horsearmorleather", "minecraft:horsearmoriron",
-        "minecraft:horsearmorgold", "minecraft:horsearmordiamond", "minecraft:copper_horse_armor", "minecraft:netherite_horse_armor"};
+    private static final String[] ACCEPTED_HORSE_ARMORS = new String[] {
+    "minecraft:horsearmorleather",
+    "minecraft:horsearmoriron",
+    "minecraft:horsearmorgold",
+    "minecraft:horsearmordiamond",
+    "minecraft:copper_horse_armor",
+    "minecraft:netherite_horse_armor",
+
+    // MODN test: custom horse accessories
+    "modnequine:flymask_blue",
+    "modnequine:flymask_pink",
+    "modnequine:flymask_beige"
+};
     private static final String[] ACCEPTED_NAUTILUS_ARMORS = new String[] {"minecraft:copper_nautilus_armor", "minecraft:iron_nautilus_armor",
         "minecraft:golden_nautilus_armor", "minecraft:diamond_nautilus_armor", "minecraft:netherite_nautilus_armor"};
 
