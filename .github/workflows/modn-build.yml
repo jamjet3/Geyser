@@ -1,0 +1,56 @@
+name: MODN Geyser Build
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - modn-horse-accessories
+
+concurrency:
+  group: modn-geyser-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Spigot and Velocity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Geyser
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Build Geyser
+        run: ./gradlew build
+
+      - name: Upload Geyser-Spigot
+        uses: actions/upload-artifact@v4
+        with:
+          name: Geyser-Spigot-MODN
+          path: bootstrap/spigot/build/libs/Geyser-Spigot.jar
+          if-no-files-found: error
+
+      - name: Upload Geyser-Velocity
+        uses: actions/upload-artifact@v4
+        with:
+          name: Geyser-Velocity-MODN
+          path: bootstrap/velocity/build/libs/Geyser-Velocity.jar
+          if-no-files-found: error
