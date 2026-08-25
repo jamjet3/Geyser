@@ -5,6 +5,7 @@ on:
   push:
     branches-ignore:
       - 'gh-readonly-queue/**'
+      - 'modn-horse-accessories'
     paths-ignore:
       - '.github/ISSUE_TEMPLATE/*.yml'
       - '.github/workflows/build-remote.yml'
@@ -40,7 +41,7 @@ jobs:
         run: ./gradlew build
         env:
           BUILD_NUMBER: ${{ steps.release-info.outputs.curentRelease }}
-          
+
       - name: Archive Artifacts
         uses: GeyserMC/actions/upload-multi-artifact@master
         if: success()
@@ -61,7 +62,7 @@ jobs:
           BUILD_NUMBER: ${{ steps.release-info.outputs.curentRelease }}
           ORG_GRADLE_PROJECT_geysermcUsername: ${{ vars.DEPLOY_USER }}
           ORG_GRADLE_PROJECT_geysermcPassword: ${{ secrets.DEPLOY_PASS }}
-        
+
       - name: Get Version
         if: ${{ (success() || failure()) && github.repository == 'GeyserMC/Geyser' }}
         id: get-version
