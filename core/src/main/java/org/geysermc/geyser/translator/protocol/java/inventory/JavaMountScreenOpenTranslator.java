@@ -77,7 +77,7 @@ public class JavaMountScreenOpenTranslator extends PacketTranslator<ClientboundM
         "minecraft:netherite_nautilus_armor"
     };
 
-    private static final NbtMap SADDLE_SLOT, CARPET_SLOT;
+    private static final NbtMap CARPET_SLOT;
     private static final NbtMap NAUTILUS_ARMOR_SLOT;
 
     static {
@@ -101,22 +101,54 @@ public class JavaMountScreenOpenTranslator extends PacketTranslator<ClientboundM
         carpetBuilder.putCompound("item", carpetItem.build());
         carpetBuilder.putInt("slotNumber", 1);
         CARPET_SLOT = carpetBuilder.build();
+    }
+
+    /**
+     * Builds the Bedrock horse saddle slot definition.
+     *
+     * In addition to the vanilla saddle, all custom Geyser items registered
+     * against minecraft:saddle are accepted.
+     *
+     * This allows custom saddle-slot items (for example horse blankets) to be
+     * added through Geyser's custom-item mappings without requiring their
+     * Bedrock identifiers to be hard-coded into Geyser.
+     */
+    private static NbtMap buildSaddleSlot(GeyserSession session) {
+        Set<String> acceptedSaddles = new LinkedHashSet<>();
+        acceptedSaddles.add("minecraft:saddle");
+
+        ItemMapping saddle = session.getItemMappings().getMapping("minecraft:saddle");
+
+        if (saddle != null && saddle.getCustomItemDefinitions() != null) {
+            for (GeyserCustomMappingData customMapping : saddle.getCustomItemDefinitions().values()) {
+                acceptedSaddles.add(customMapping.itemDefinition().getIdentifier());
+            }
+        }
 
         NbtMapBuilder saddleBuilder = NbtMap.builder();
-        NbtMapBuilder acceptedSaddle = NbtMap.builder()
+        List<NbtMap> acceptedItems = new ArrayList<>(acceptedSaddles.size());
+
+        for (String identifier : acceptedSaddles) {
+            NbtMapBuilder acceptedItem = NbtMap.builder()
+                .putShort("Aux", Short.MAX_VALUE)
+                .putString("Name", identifier);
+
+            acceptedItems.add(
+                NbtMap.builder()
+                    .putCompound("slotItem", acceptedItem.build())
+                    .build()
+            );
+        }
+
+        saddleBuilder.putList("acceptedItems", NbtType.COMPOUND, acceptedItems);
+
+        NbtMapBuilder saddleItem = NbtMap.builder()
             .putShort("Aux", Short.MAX_VALUE)
             .putString("Name", "minecraft:saddle");
 
-        List<NbtMap> acceptedItem = Collections.singletonList(
-            NbtMap.builder()
-                .putCompound("slotItem", acceptedSaddle.build())
-                .build()
-        );
-
-        saddleBuilder.putList("acceptedItems", NbtType.COMPOUND, acceptedItem);
-        saddleBuilder.putCompound("item", acceptedSaddle.build());
+        saddleBuilder.putCompound("item", saddleItem.build());
         saddleBuilder.putInt("slotNumber", 0);
-        SADDLE_SLOT = saddleBuilder.build();
+        return saddleBuilder.build();
     }
 
     /**
@@ -235,7 +267,7 @@ public class JavaMountScreenOpenTranslator extends PacketTranslator<ClientboundM
                 inventoryTranslator =
                     new DonkeyInventoryTranslator(slotCount);
 
-                slots.add(SADDLE_SLOT);
+                slots.add(buildSaddleSlot(session));
             }
 
             case CamelEntity ignored -> {
@@ -248,14 +280,14 @@ public class JavaMountScreenOpenTranslator extends PacketTranslator<ClientboundM
                 inventoryTranslator =
                     new DonkeyInventoryTranslator(slotCount);
 
-                slots.add(SADDLE_SLOT);
+                slots.add(buildSaddleSlot(session));
             }
 
             default -> {
                 inventoryTranslator =
                     new MountInventoryTranslator(slotCount);
 
-                slots.add(SADDLE_SLOT);
+                slots.add(buildSaddleSlot(session));
 
                 if (entity instanceof NautilusEntity) {
                     slots.add(NAUTILUS_ARMOR_SLOT);
