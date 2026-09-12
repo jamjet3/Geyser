@@ -46,6 +46,7 @@ import org.geysermc.geyser.translator.inventory.InventoryTranslator;
 import org.geysermc.geyser.translator.inventory.horse.DonkeyInventoryTranslator;
 import org.geysermc.geyser.translator.inventory.horse.LlamaInventoryTranslator;
 import org.geysermc.geyser.translator.inventory.horse.MountInventoryTranslator;
+import org.geysermc.geyser.translator.inventory.horse.SkeletonHorseInventoryTranslator;
 import org.geysermc.geyser.translator.protocol.PacketTranslator;
 import org.geysermc.geyser.translator.protocol.Translator;
 import org.geysermc.geyser.util.InventoryUtils;
@@ -283,6 +284,20 @@ public class JavaMountScreenOpenTranslator extends PacketTranslator<ClientboundM
                 slots.add(buildSaddleSlot(session));
             }
 
+            case SkeletonHorseEntity ignored -> {
+                /*
+                 * Java still reserves two horse equipment indices, but Bedrock's
+                 * skeleton-horse screen only exposes the saddle slot. Use a
+                 * translator that collapses the Java equipment layout to the
+                 * single Bedrock-visible slot and ignores updates for Java's
+                 * hidden body/armor slot.
+                 */
+                inventoryTranslator =
+                    new SkeletonHorseInventoryTranslator(slotCount);
+
+                slots.add(buildSaddleSlot(session));
+            }
+
             default -> {
                 inventoryTranslator =
                     new MountInventoryTranslator(slotCount);
@@ -291,7 +306,7 @@ public class JavaMountScreenOpenTranslator extends PacketTranslator<ClientboundM
 
                 if (entity instanceof NautilusEntity) {
                     slots.add(NAUTILUS_ARMOR_SLOT);
-                } else if (!(entity instanceof SkeletonHorseEntity)) {
+                } else {
                     slots.add(buildHorseArmorSlot(session));
                 }
             }
