@@ -25,6 +25,7 @@
 
 package org.geysermc.geyser.entity.type.living.animal.horse;
 
+import net.kyori.adventure.key.Key;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.cloudburstmc.math.vector.Vector2f;
@@ -55,8 +56,21 @@ import org.geysermc.mcprotocollib.protocol.data.game.entity.attribute.Attribute;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.attribute.AttributeType;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.type.ByteEntityMetadata;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.Hand;
+import org.geysermc.mcprotocollib.protocol.data.game.item.component.DataComponentTypes;
+import org.geysermc.mcprotocollib.protocol.data.game.item.component.Equippable;
 
 public class AbstractHorseEntity extends AnimalEntity implements ClientVehicle {
+
+    private static final String[] MODN_BLANKET_PATTERNS = {
+        "solid", "quilted", "zebra", "bandedzebra", "fullbandedzebra"
+    };
+
+    private static final String[] MODN_BLANKET_COLORS = {
+        "black", "darkgrey", "lightgrey", "white",
+        "brown", "red", "orange", "yellow",
+        "lime", "green", "cyan", "lightblue",
+        "blue", "purple", "magenta", "pink"
+    };
 
     private final HorseVehicleComponent vehicleComponent = new HorseVehicleComponent(this);
 
@@ -85,6 +99,28 @@ public class AbstractHorseEntity extends AnimalEntity implements ClientVehicle {
         attributesPacket.setRuntimeEntityId(geyserId);
         attributesPacket.getAttributes().add(GeyserAttributeType.HORSE_JUMP_STRENGTH.getAttribute(0.5f, 2));
         session.sendUpstreamPacket(attributesPacket);
+    }
+
+    /**
+     * Exposes ModN saddle-slot blankets to Bedrock for all horse-family entity
+     * implementations, including zombie and skeleton horses.
+     *
+     * Normal horses already override setSaddle in HorseEntity so that their
+     * genuine Java marking is preserved in the low 0-4 part of MARK_VARIANT.
+     * For the other AbstractHorseEntity implementations the marking remainder is
+     * zero, leaving:
+     *
+     * blanket id = floor(mark_variant / 5)
+     */
+    @Override
+    public void setSaddle(GeyserItemStack stack) {
+        super.setSaddle(stack);
+
+        if (!(this instanceof HorseEntity)) {
+            int modnBlanketVariant = getModnBlanketVariant(stack);
+            metadata.put(EntityDataTypes.MARK_VARIANT, modnBlanketVariant * 5);
+            updateBedrockMetadata();
+        }
     }
 
     @Override
@@ -288,7 +324,18 @@ public class AbstractHorseEntity extends AnimalEntity implements ClientVehicle {
         } else if (!passengers.isEmpty()) {
             return testHorseInteraction(hand, itemInHand);
         } else {
-            if (itemInHand.is(Items.SADDLE)) {
+            /*
+             * Do not expose custom saddle-slot equipment as a direct Bedrock
+             * SADDLE interaction. On skeleton horses in particular the Bedrock
+             * client can optimistically set its local saddled state even when the
+             * translated Java slot does not contain a vanilla saddle, producing
+             * the "ghost saddle / empty but blocked slot" state.
+             *
+             * Opening the translated mount container lets Java remain authoritative
+             * for the actual SADDLE equipment slot and works for both vanilla
+             * saddles and ModN blanket items.
+             */
+            if (itemInHand.is(Items.SADDLE) || isSaddleSlotItem(itemInHand)) {
                 return InteractiveTag.OPEN_CONTAINER;
             }
 
@@ -314,6 +361,48 @@ public class AbstractHorseEntity extends AnimalEntity implements ClientVehicle {
             // The client tests for saddle but it doesn't matter for us at this point.
             return InteractionResult.SUCCESS;
         }
+    }
+
+    private static boolean isSaddleSlotItem(GeyserItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return false;
+        }
+
+        Equippable equippable = stack.getComponent(DataComponentTypes.EQUIPPABLE);
+        return equippable != null && equippable.slot() == EquipmentSlot.SADDLE;
+    }
+
+    private static int getModnBlanketVariant(GeyserItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return 0;
+        }
+
+        Key model = stack.getComponent(DataComponentTypes.ITEM_MODEL);
+        if (model == null || !"blankets".equals(model.namespace())) {
+            return 0;
+        }
+
+        String value = model.value();
+        if (!value.startsWith("item_")) {
+            return 0;
+        }
+
+        String blanketKey = value.substring("item_".length());
+        for (int patternIndex = 0; patternIndex < MODN_BLANKET_PATTERNS.length; patternIndex++) {
+            String prefix = MODN_BLANKET_PATTERNS[patternIndex] + "_";
+            if (!blanketKey.startsWith(prefix)) {
+                continue;
+            }
+
+            String color = blanketKey.substring(prefix.length());
+            for (int colorIndex = 0; colorIndex < MODN_BLANKET_COLORS.length; colorIndex++) {
+                if (MODN_BLANKET_COLORS[colorIndex].equals(color)) {
+                    return (patternIndex * MODN_BLANKET_COLORS.length) + colorIndex + 1;
+                }
+            }
+        }
+
+        return 0;
     }
 
     @Override
