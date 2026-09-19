@@ -69,7 +69,7 @@ public class HorseEntity extends AbstractHorseEntity {
 
     /**
      * Packs the normal Java horse marking (0-4) together with the ModN blanket
-     * variant (0-80) into Bedrock MARK_VARIANT.
+     * variant (0-83) into Bedrock MARK_VARIANT.
      *
      * Bedrock resource-pack decoding:
      *   marking    = mark_variant % 5
@@ -103,6 +103,19 @@ public class HorseEntity extends AbstractHorseEntity {
         }
 
         String blanketKey = value.substring("item_".length());
+
+        // Webstore-exclusive blankets use stable IDs after the original 80 variants.
+        // These IDs must match Array.modn_blanket in the Bedrock resource pack.
+        switch (blanketKey) {
+            case "september_goldenhour":
+                return 81;
+            case "september_bramblebear":
+                return 82;
+            case "september_countryplaid":
+                return 83;
+            default:
+                break;
+        }
         for (int patternIndex = 0; patternIndex < MODN_BLANKET_PATTERNS.length; patternIndex++) {
             String prefix = MODN_BLANKET_PATTERNS[patternIndex] + "_";
             if (!blanketKey.startsWith(prefix)) {
