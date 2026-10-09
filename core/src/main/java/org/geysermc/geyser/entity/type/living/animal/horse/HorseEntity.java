@@ -25,26 +25,13 @@
 
 package org.geysermc.geyser.entity.type.living.animal.horse;
 
-import net.kyori.adventure.key.Key;
 import org.cloudburstmc.protocol.bedrock.data.entity.EntityDataTypes;
 import org.geysermc.geyser.entity.spawn.EntitySpawnContext;
 import org.geysermc.geyser.inventory.GeyserItemStack;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.EquipmentSlot;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.type.IntEntityMetadata;
-import org.geysermc.mcprotocollib.protocol.data.game.item.component.DataComponentTypes;
 
 public class HorseEntity extends AbstractHorseEntity {
-
-    private static final String[] MODN_BLANKET_PATTERNS = {
-        "solid", "quilted", "zebra", "bandedzebra", "fullbandedzebra"
-    };
-
-    private static final String[] MODN_BLANKET_COLORS = {
-        "black", "darkgrey", "lightgrey", "white",
-        "brown", "red", "orange", "yellow",
-        "lime", "green", "cyan", "lightblue",
-        "blue", "purple", "magenta", "pink"
-    };
 
     private int javaMarkVariant;
     private int modnBlanketVariant;
@@ -69,7 +56,9 @@ public class HorseEntity extends AbstractHorseEntity {
 
     /**
      * Packs the normal Java horse marking (0-4) together with the ModN blanket
-     * variant (0-83) into Bedrock MARK_VARIANT.
+     * variant into Bedrock MARK_VARIANT. New blanket IDs are supplied by
+     * minecraft:custom_model_data and legacy IDs are handled by the shared
+     * mapper in AbstractHorseEntity.
      *
      * Bedrock resource-pack decoding:
      *   marking    = mark_variant % 5
@@ -85,52 +74,6 @@ public class HorseEntity extends AbstractHorseEntity {
         if (sendImmediately) {
             updateBedrockMetadata();
         }
-    }
-
-    private static int getModnBlanketVariant(GeyserItemStack stack) {
-        if (stack == null || stack.isEmpty()) {
-            return 0;
-        }
-
-        Key model = stack.getComponent(DataComponentTypes.ITEM_MODEL);
-        if (model == null || !"blankets".equals(model.namespace())) {
-            return 0;
-        }
-
-        String value = model.value();
-        if (!value.startsWith("item_")) {
-            return 0;
-        }
-
-        String blanketKey = value.substring("item_".length());
-
-        // Webstore-exclusive blankets use stable IDs after the original 80 variants.
-        // These IDs must match Array.modn_blanket in the Bedrock resource pack.
-        switch (blanketKey) {
-            case "september_goldenhour":
-                return 81;
-            case "september_bramblebear":
-                return 82;
-            case "september_countryplaid":
-                return 83;
-            default:
-                break;
-        }
-        for (int patternIndex = 0; patternIndex < MODN_BLANKET_PATTERNS.length; patternIndex++) {
-            String prefix = MODN_BLANKET_PATTERNS[patternIndex] + "_";
-            if (!blanketKey.startsWith(prefix)) {
-                continue;
-            }
-
-            String color = blanketKey.substring(prefix.length());
-            for (int colorIndex = 0; colorIndex < MODN_BLANKET_COLORS.length; colorIndex++) {
-                if (MODN_BLANKET_COLORS[colorIndex].equals(color)) {
-                    return (patternIndex * MODN_BLANKET_COLORS.length) + colorIndex + 1;
-                }
-            }
-        }
-
-        return 0;
     }
 
     @Override

@@ -56,6 +56,7 @@ import org.geysermc.mcprotocollib.protocol.data.game.entity.attribute.Attribute;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.attribute.AttributeType;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.type.ByteEntityMetadata;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.Hand;
+import org.geysermc.mcprotocollib.protocol.data.game.item.component.CustomModelData;
 import org.geysermc.mcprotocollib.protocol.data.game.item.component.DataComponentTypes;
 import org.geysermc.mcprotocollib.protocol.data.game.item.component.Equippable;
 
@@ -372,7 +373,17 @@ public class AbstractHorseEntity extends AnimalEntity implements ClientVehicle {
         return equippable != null && equippable.slot() == EquipmentSlot.SADDLE;
     }
 
-    private static int getModnBlanketVariant(GeyserItemStack stack) {
+    /**
+     * Returns the Bedrock blanket render ID for a Java saddle-slot blanket.
+     *
+     * New blanket items are data-driven: the first float in
+     * minecraft:custom_model_data is the Bedrock blanket render ID. This means
+     * future blanket drops do not require another Geyser source-code change.
+     *
+     * Older issued blankets did not carry that component, so their original
+     * name-based mapping remains below as a backwards-compatible fallback.
+     */
+    protected static int getModnBlanketVariant(GeyserItemStack stack) {
         if (stack == null || stack.isEmpty()) {
             return 0;
         }
@@ -387,20 +398,28 @@ public class AbstractHorseEntity extends AnimalEntity implements ClientVehicle {
             return 0;
         }
 
+        CustomModelData customModelData = stack.getComponent(DataComponentTypes.CUSTOM_MODEL_DATA);
+        if (customModelData != null && !customModelData.floats().isEmpty()) {
+            float rawVariant = customModelData.floats().getFirst();
+            int variant = Math.round(rawVariant);
+            if (variant > 0 && Math.abs(rawVariant - variant) < 0.0001f) {
+                return variant;
+            }
+        }
+
         String blanketKey = value.substring("item_".length());
 
-        // Webstore-exclusive blankets use stable IDs after the original 80 variants.
-        // These IDs must match Array.modn_blanket in the Bedrock resource pack.
-        switch (blanketKey) {
-            case "september_goldenhour":
-                return 81;
-            case "september_bramblebear":
-                return 82;
-            case "september_countryplaid":
-                return 83;
-            default:
-                break;
-        }
+        // September 2026 webstore blankets were issued before the generic
+        // custom-model-data pipeline, so preserve their established IDs.
+        return switch (blanketKey) {
+            case "september_goldenhour" -> 81;
+            case "september_bramblebear" -> 82;
+            case "september_countryplaid" -> 83;
+            default -> getLegacyModnBlanketVariant(blanketKey);
+        };
+    }
+
+    private static int getLegacyModnBlanketVariant(String blanketKey) {
         for (int patternIndex = 0; patternIndex < MODN_BLANKET_PATTERNS.length; patternIndex++) {
             String prefix = MODN_BLANKET_PATTERNS[patternIndex] + "_";
             if (!blanketKey.startsWith(prefix)) {
