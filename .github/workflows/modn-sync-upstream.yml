@@ -7,7 +7,7 @@ on:
     - cron: '17 5 * * *'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   sync:
@@ -21,6 +21,7 @@ jobs:
           ref: modn-horse-accessories
           fetch-depth: 0
           submodules: recursive
+          token: ${{ secrets.MODN_SYNC_PAT }}
 
       - name: Configure Git
         run: |
