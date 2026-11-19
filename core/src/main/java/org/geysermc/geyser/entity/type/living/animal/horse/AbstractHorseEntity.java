@@ -203,7 +203,7 @@ public class AbstractHorseEntity extends AnimalEntity implements ClientVehicle {
         boolean isBaby = isBaby();
         if (!isBaby) {
             if (getFlag(EntityFlag.TAMED) && session.isSneaking()) {
-                return InteractiveTag.OPEN_CONTAINER;
+                return InteractiveTag.OPENCONTAINER;
             }
 
             if (!passengers.isEmpty()) {
@@ -226,12 +226,12 @@ public class AbstractHorseEntity extends AnimalEntity implements ClientVehicle {
             }
 
             if (testForChest(itemInHand)) {
-                return InteractiveTag.ATTACH_CHEST;
+                return InteractiveTag.ATTACHCHEST;
             }
 
             if (additionalTestForInventoryOpen(itemInHand) || !isBaby && !getFlag(EntityFlag.SADDLED) && itemInHand.is(Items.SADDLE)) {
                 // Will open the inventory to be saddled
-                return InteractiveTag.OPEN_CONTAINER;
+                return InteractiveTag.OPENCONTAINER;
             }
         }
 
@@ -321,7 +321,7 @@ public class AbstractHorseEntity extends AnimalEntity implements ClientVehicle {
         } else if (isBaby()) {
             return testHorseInteraction(hand, itemInHand);
         } else if (session.isSneaking()) {
-            return InteractiveTag.OPEN_CONTAINER;
+            return InteractiveTag.OPENCONTAINER;
         } else if (!passengers.isEmpty()) {
             return testHorseInteraction(hand, itemInHand);
         } else {
@@ -337,7 +337,7 @@ public class AbstractHorseEntity extends AnimalEntity implements ClientVehicle {
              * saddles and ModN blanket items.
              */
             if (itemInHand.is(Items.SADDLE) || isSaddleSlotItem(itemInHand)) {
-                return InteractiveTag.OPEN_CONTAINER;
+                return InteractiveTag.OPENCONTAINER;
             }
 
             if (testSaddle(itemInHand)) {
